@@ -81,7 +81,11 @@ export class CitationGapFactory {
       const blob = new Blob([bytes], { type: "application/pdf" });
 
       pw.changeLine({ text: "Uploading to Purplelink...", progress: 30 });
-      const form = new FormData();
+      // FormData isn't a global in Zotero's privileged main-window scope
+      // (unlike fetch/Blob, which are) — pull the constructor off the
+      // actual browser window instead of relying on an ambient global.
+      const FormDataCtor = ztoolkit.getGlobal("FormData") as typeof FormData;
+      const form = new FormDataCtor();
       form.append("token", token);
       form.append("file", blob, "manuscript.pdf");
       const submitResp = await fetch(SUBMIT_URL, {
