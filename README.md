@@ -9,26 +9,28 @@ gaps (Purplelink)** → the result comes back as a note attached to the item.
 
 ## Status
 
-**v0.1.0 — builds cleanly, not yet tested inside a real Zotero installation.**
-This repo was scaffolded and its API calls verified against Zotero's own
-TypeScript type definitions (`zotero-types`) and the official
-[`zotero-plugin-template`](https://github.com/windingwind/zotero-plugin-template),
-but there is no Zotero desktop app available in the environment this was
-built in — `npm run build` produces a real, type-checked `.xpi`, but nobody
-has clicked the menu item inside Zotero yet. Before distributing:
+**v0.1.0 — end-to-end tested against a real Zotero 9.0.4 install and the live
+production backend.** Verified: menu item registers, missing-token guard,
+PDF read off disk, upload to `/citation-gap/submit`, polling
+`/paper-review/status`, and the result note attaching correctly to the
+library item. Two real bugs were found and fixed by this pass (not caught by
+type-checking or `npm run build` alone):
 
-1. Install the built `.xpi` (`.scaffold/build/purplelink-citation-gap.xpi`
-   after `npm run build`) in a real Zotero 7 install via Tools → Add-ons →
-   gear icon → "Install Add-on From File".
-2. Set a real Citation Gap token in Settings → Purplelink Citation Gap
-   (buy one at purplelink.llc/tools/citation-gap/, $3).
-3. Select a library item with an attached manuscript PDF, right-click, run
-   the check, and confirm the resulting note actually appears and reads
-   correctly.
-4. Confirm `attachment.getFilePathAsync()` returns a usable path for a
-   normal (non-linked) stored PDF attachment — this is the one API call in
-   `src/modules/citationGap.ts` most worth double-checking live, since it's
-   the piece with the least redundant verification behind it.
+- `manifest.json` capped `strict_max_version` at `8.*`, which Zotero 9
+  flagged as incompatible. Now `9.*`.
+- `FormData` isn't a global in Zotero's privileged main-window scope (unlike
+  `fetch`/`Blob`, which are) — fixed by pulling the constructor off the
+  browser window via `ztoolkit.getGlobal("FormData")`.
+
+Still open before wider distribution:
+
+1. Only tested on macOS with one manuscript PDF — the backend correctly
+   reported it couldn't extract a reference list from that specific PDF
+   (a real, honestly-reported edge case, not a plugin bug), so a PDF with a
+   normal machine-readable bibliography hasn't been exercised yet.
+2. Not tested on Windows/Linux, or against a linked (not stored) PDF
+   attachment.
+3. No real users yet — this has only been run by the developer.
 
 ## How it works
 
@@ -56,9 +58,12 @@ has clicked the menu item inside Zotero yet. Before distributing:
   website. An in-Zotero checkout is out of scope for v0.1.
 - **Distribution.** Not yet submitted to
   [MohamedElashri/awesome-zotero](https://github.com/MohamedElashri/awesome-zotero)
-  or any plugin directory — see
-  `docs/zotero-plugin-and-directory-scoping.md` in the main repo. Hold that
-  submission until this has been smoke-tested per the Status section above.
+  or any plugin directory, and not yet pushed to a public GitHub repo (this
+  is currently a local-only git history) — see
+  `docs/zotero-plugin-and-directory-scoping.md` in the main repo. Also note
+  that `awesome-zotero`-style lists commonly require an open-source
+  release with a public repo before listing; this plugin is AGPL-licensed
+  and qualifies once it has a public home.
 
 ## Development
 
