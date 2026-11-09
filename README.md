@@ -1,6 +1,6 @@
 # Purplelink Citation Gap for Zotero
 
-A Zotero 7 plugin that runs [Purplelink's Citation Gap](https://purplelink.llc/tools/citation-gap/)
+A Zotero plugin (Zotero 7 through 10) that runs [Purplelink's Citation Gap](https://purplelink.llc/tools/citation-gap/)
 check on a manuscript directly from your library, instead of downloading the
 PDF and re-uploading it through the browser.
 
@@ -9,7 +9,8 @@ gaps (Purplelink)** → the result comes back as a note attached to the item.
 
 ## Status
 
-**v0.1.0 — end-to-end tested against a real Zotero 9.0.4 install and the live
+**v0.1.1 — installs and runs on Zotero 10.0.8 (tested 2026-11-09, see below).
+First end-to-end tested against a real Zotero 9.0.4 install and the live
 production backend.** Verified: menu item registers, missing-token guard,
 PDF read off disk, upload to `/citation-gap/submit`, polling
 `/paper-review/status`, and the result note attaching correctly to the
@@ -21,6 +22,38 @@ type-checking or `npm run build` alone):
 - `FormData` isn't a global in Zotero's privileged main-window scope (unlike
   `fetch`/`Blob`, which are) — fixed by pulling the constructor off the
   browser window via `ztoolkit.getGlobal("FormData")`.
+
+### Zotero 10 test (2026-11-09)
+
+`strict_max_version` was `9.*`, so Zotero 10 would have refused the plugin.
+Now `10.*`. Tested against Zotero 10.0.8 (the current release; Zotero 10
+shipped in August 2026) on macOS, in a separate copy with its own profile
+and empty library, run headless by a throwaway test add-on that drives the
+plugin's real menu command. All checks passed:
+
+- The add-on manager installs it as active and compatible, `onStartup`
+  finishes, the item context menu entry ("Check for citation gaps
+  (Purplelink)") and the settings pane both register.
+- Missing-token guard: shows its message and sends no request.
+- Live backend: a real multipart upload of a stored PDF reached
+  `/citation-gap/submit`; the old test token is expired, so the backend
+  answered 404 `unknown_token` and the plugin showed "Purplelink rejected the
+  upload: unknown_token" without attaching a note.
+- Success path, with the two backend URLs redirected to a local stand-in
+  (no unused token was available, and none was minted on production): the
+  upload arrived as multipart with the `token` field and a `file` part named
+  `manuscript.pdf` holding the whole PDF; the plugin polled
+  `/paper-review/status` until `done`, attached the result as a child note
+  with the Markdown escaped inside `<pre>`, and showed the success message.
+
+Not covered: a full paid scan against production on Zotero 10 (needs a
+fresh Citation Gap token).
+
+Zotero 10 runs on Firefox 140, which removed `ChromeUtils.import()`. The
+bundled `zotero-plugin-toolkit` (5.1.0-beta.13) still calls it, and works
+only because Zotero 10 shims it for plugins with a warning (31 warnings per
+start). Zotero marks that shim as provisional, so moving to toolkit 6.x is
+the next compatibility step.
 
 Still open before wider distribution:
 
@@ -58,12 +91,11 @@ Still open before wider distribution:
   website. An in-Zotero checkout is out of scope for v0.1.
 - **Distribution.** Not yet submitted to
   [MohamedElashri/awesome-zotero](https://github.com/MohamedElashri/awesome-zotero)
-  or any plugin directory, and not yet pushed to a public GitHub repo (this
-  is currently a local-only git history) — see
-  `docs/zotero-plugin-and-directory-scoping.md` in the main repo. Also note
-  that `awesome-zotero`-style lists commonly require an open-source
-  release with a public repo before listing; this plugin is AGPL-licensed
-  and qualifies once it has a public home.
+  or any plugin directory. The source is public at
+  [purplelink-llc/purplelink-zotero](https://github.com/purplelink-llc/purplelink-zotero),
+  and the `.xpi` ships on its GitHub releases page, with `update.json`
+  for Zotero's own update check — see
+  `docs/zotero-plugin-and-directory-scoping.md` in the main repo.
 
 ## Development
 
